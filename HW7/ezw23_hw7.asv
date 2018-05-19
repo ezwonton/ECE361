@@ -49,8 +49,4 @@ mn = mean(max)/std(max);
 title("Wan");
 xlabel("input data");
 ylabel("estimated pdf");
-legend("Data (ksDensity)", "Arith", "Geo", "Max");
-sprintf('Input: mean/std. dev=%.4f',n)
-sprintf('AM: mean/std. dev =%.4f',an)
-sprintf('GM: mean/std. dev =%.4f',gn)
-sprintf('MAX: mean/std. dev =%.4f',mn)
+legend("Data (ksDensity)", "Arith", "Geo", "Max")

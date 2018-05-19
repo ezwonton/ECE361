@@ -52,7 +52,8 @@ plot(thr, p1, "mo")
 
 legend("Target Absent", "Target Present", "PM", "PF", "Thr = 2.7185"); % Legend
 
-%% Finding Thr Optimum ROC Curve
+%% Finding The Optimum Plots
+% Calculating ROC curve
 gs0 = [zeros(70, 1) no_target];
 gs1 = [ones(30, 1) target];
 gs = sortrows([gs0; gs1], 2, 'descend');
@@ -62,22 +63,40 @@ for i = 1:length(gs)
 end
 prob = [counts(:, 1)/length(target) counts(:, 2)/length(no_target)];
 dist = sqrt(prob(:, 2).^2 + (1-prob(:, 1)).^2);
-[M, I] = min(dist);
+[~, I] = min(dist);
 opt_pt = prob(I, :);
 opt_PD = opt_pt(1, 1);
 opt_PF = opt_pt(1, 2);
 thr = gs(I, :);
+opt_dist = dist(I);
 figure;
 hold on;
 grid on;
 plot(prob(:, 2), prob(:, 1), 'k');
-plot(opt_PF, opt_PD, 'c*');
+plot(opt_PF, opt_PD, 'b*');
 title("Data - Team 7")
 xlabel("PF");
 ylabel("PD");
-legend({"ROC", "Opt.Pt. [PF, PD]=[0.15, 0.80]. Thr. Opt=3.7254"}, 'Location', 'southeast');
 
-%% Plotting Densities of Threshold Optimum
+roc_int = prob([(prob(:, 2) == 16/70) (prob(:, 2) == 16/70)]);
+dist_int = dist(prob(:, 2) == 16/70);
+plot(roc_int(2, 1), roc_int(1, 1), 'ks');
+legend({"ROC: Az (area under curve)= 0.8648 | STD Deviation = 0.0451", "Opt.Pt. [PF, PD]=[0.2714, 0.80]", "Intersection: [PF, PD]=[0.2286, 0.70]"}, 'Location', 'southeast');
+text(0.4, 0.5, "PPV (Optical Oper. Point) = 0.5581");
+text(opt_PF, opt_PD, "  <--  Dist. to top left corner: 0.3372", 'FontWeight', 'bold', 'Color', 'r')
+text(roc_int(2, 1), roc_int(1, 1), "  <--  Dist. to top left corner: 0.3772", 'FontWeight', 'bold', 'Color', 'r')
+
+% Finding Area of ROC
+total_area = 0;
+last = -1;
+for i = 1:length(prob(:,1))
+    if prob(i, 1) > last
+        last = prob(i, 1);
+        addit = 0.0333 * (1-prob(i, 2));
+        total_area = total_area + addit;
+    end
+end
+
 figure;
 hold on;
 grid on;
@@ -87,6 +106,12 @@ title("Estimated Densities (Optimum) - Team 7")
 xlabel("Input Data");
 ylabel("Estimated PDF");
 axis([0 9.5 0 0.45])
+
+% Plotting optimum pdf
+[M , I] = min(dist);
+opt_pt = prob(I, :);
+opt_PD = opt_pt(1, 1);
+opt_PF = opt_pt(1, 2);
 
 x = 0:0.0001:thr(2);
 p = polyfit(t, pt, 20);
@@ -100,5 +125,38 @@ area(x,p1, 'FaceColor', 'g');
 
 p = polyfit(n, pn, 20);
 p1 = polyval(p, thr(2));
-plot(thr(2), p1, "c*")
+plot(thr(2), p1, "mo")
 legend("Target Absent", "Target Present", "PM", "PF", "Thr = 2.5368");
+text(5, 0.25, "Perfomance Index = 0.9221");
+
+%% Creating Std Devation vs. Number of Samples (Target Not Present) Curve
+az = [];
+stds =  [];
+for n=0:5:40
+    prob = [counts(:, 1)/length(target) counts(:, 2)/(30+n)];
+    % Finding Area of ROC
+    total_area = 0;
+    last = -1;
+    for i = 1:length(prob(:,1))
+        if prob(i, 1) > last
+            last = prob(i, 1);
+            addit = 0.0333 * (1-prob(i, 2));
+            total_area = total_area + addit;
+        end
+    end
+    % Store all areas
+    az = [az total_area];
+    % Store all std deviations of areas
+    A1 = (total_area)/(2-total_area);
+    A2 = (2*total_area^2)/(1+total_area);
+    std_i = (total_area*(1-total_area)+(30-1)*(A1-total_area^2) + (30+n-1)*(A2-total_area^2)) / (30*(30+n));
+    stds = [stds sqrt(std_i)];
+end
+n=30:5:70;
+figure;
+plot(n, stds, 'r');
+xlabel('Number of Samples with (Target Absent)');
+ylabel('Standard Deviation of ROC area');
+title('Hanley and McNeill, Std Deviation with Respect to Target Absent Values');
+text(45, 0.06, {"Sample Size (Target Absent) N1 = 70", "Sample Size (Target Present) N2 = 30", "Az = 0.8648"});
+
